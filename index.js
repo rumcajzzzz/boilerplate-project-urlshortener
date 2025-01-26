@@ -23,7 +23,6 @@ app.post('/api/shorturl', function(req, res) {
 
   const originalURL = req.body.url;
 
-  // Regular expression to validate the URL format
   const urlPattern = /^(https?:\/\/)(www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})(\/[^\s]*)?$/;
 
   if (!originalURL || !urlPattern.test(originalURL)) {
@@ -34,7 +33,7 @@ app.post('/api/shorturl', function(req, res) {
     if (urlDatabase[shortid] === originalURL) {
       return res.json({
         original_url: originalURL,
-        short_url: Number(shortid) // Convert to number
+        short_url: Number(shortid)
       });
     }
   }
@@ -44,7 +43,7 @@ app.post('/api/shorturl', function(req, res) {
 
   const response = {
     original_url: originalURL,
-    short_url: shortid // This is already a number
+    short_url: shortid 
   };
 
   console.log("Response sent: ", response);
