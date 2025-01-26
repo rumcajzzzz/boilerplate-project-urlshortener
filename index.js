@@ -19,39 +19,36 @@ let id = 1;
 const urlDatabase = {};
 
 app.post('/api/shorturl', function(req, res) {
-
   console.log("Received body: ", req.body);
 
-  const url = {
-    originalURL: req.body.url,
-    shortid: null
+  const originalURL = req.body.url;
+
+  // Regular expression to validate the URL format
+  const urlPattern = /^(https?:\/\/)(www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})(\/[^\s]*)?$/;
+
+  if (!originalURL || !urlPattern.test(originalURL)) {
+    return res.status(400).json({ error: 'invalid url' });
+  }
+
+  for (const shortid in urlDatabase) {
+    if (urlDatabase[shortid] === originalURL) {
+      return res.json({
+        original_url: originalURL,
+        short_url: Number(shortid) // Convert to number
+      });
+    }
+  }
+
+  const shortid = id++;
+  urlDatabase[shortid] = originalURL;
+
+  const response = {
+    original_url: originalURL,
+    short_url: shortid // This is already a number
   };
 
-  console.log("Received URL: ", url.originalURL); 
-
-  if(url.originalURL && (url.originalURL.startsWith("https://") || url.originalURL.startsWith("http://"))) { 
-    for (const shortid in urlDatabase) {
-      if (urlDatabase[shortid] === url.originalURL) {
-        return res.json ({
-          original_url: url.originalURL,
-          short_url: shortid
-        })
-      }
-    }
-
-    const shortid = id;
-    url.shortid = shortid;
-    urlDatabase[shortid] = url.originalURL;
-    id++;
-
-    res.json({
-      original_url: url.originalURL,
-      short_url: url.shortid
-    })
-
-  } else {
-    res.json({ error: "Invalid URL."});
-  }
+  console.log("Response sent: ", response);
+  res.json(response);
 });
 
 app.get('/api/shorturl/:short_url', function(req, res) {
