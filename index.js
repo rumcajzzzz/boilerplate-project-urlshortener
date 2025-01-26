@@ -5,7 +5,7 @@ const app = express();
 
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({ origin: '*' })); // Zapewniamy dostęp z różnych źródeł
 app.use(express.json());
 
 app.use('/public', express.static(`${process.cwd()}/public`));
@@ -18,27 +18,33 @@ let id = 1;
 const urlDatabase = {};
 
 app.post('/api/shorturl', function(req, res) {
-  console.log("Received body: ", req.body);  // Logowanie ciała żądania
+  console.log("Received body: ", req.body);
 
-  const originalURL = req.body.url;
+  let originalURL = req.body.url;
 
-  const urlPattern = /^(https?:\/\/)([a-z0-9-]+\.)+[a-z0-9]{2,}([\/\?].*)?$/i;
+  // Jeśli URL nie zaczyna się od http:// lub https://, dodajemy https://
+  if (!/^https?:\/\//i.test(originalURL)) {
+    originalURL = 'https://' + originalURL;
+  }
+
+  // Poprawiony wzorzec URL
+  const urlPattern = /^(https?:\/\/)[^\s$.?#].[^\s]*$/i;
 
   if (!originalURL || !urlPattern.test(originalURL)) {
     return res.status(400).json({ error: 'invalid url' });
   }
 
-  // Check if URL already exists in the database
+  // Sprawdzamy, czy URL już istnieje w bazie danych
   for (const shortid in urlDatabase) {
     if (urlDatabase[shortid] === originalURL) {
       return res.json({
         original_url: originalURL,
-        short_url: shortid // No need to convert to Number
+        short_url: shortid // Odpowiedź z krótkim URL
       });
     }
   }
 
-  // Create a new short URL
+  // Tworzymy nowy krótki URL
   const shortid = id++;
   urlDatabase[shortid] = originalURL;
 
@@ -47,8 +53,8 @@ app.post('/api/shorturl', function(req, res) {
     short_url: shortid
   };
 
-  console.log("Response sent: ", response);  // Logowanie odpowiedzi
-  res.json(response);
+  console.log("Response sent: ", response);
+  res.json(response); // Zwracamy odpowiedź JSON
 });
 
 app.get('/api/shorturl/:short_url', function(req, res) {
@@ -56,10 +62,10 @@ app.get('/api/shorturl/:short_url', function(req, res) {
   const originalURL = urlDatabase[shortUrl];
 
   if (originalURL) {
-    // Redirect to the original URL
+    // Przekierowujemy do oryginalnego URL
     res.redirect(originalURL);
   } else {
-    // Handle case when short URL is not found
+    // Obsługujemy przypadek, gdy krótkiego URL nie znaleziono
     res.status(404).json({ error: "No short URL found for the given input." });
   }
 });
