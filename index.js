@@ -14,43 +14,38 @@ app.get('/', function(req, res) {
   res.sendFile(process.cwd() + '/views/index.html');
 });
 
+
 let id = 1;
 const urlDatabase = {};
 
 app.post('/api/shorturl', function(req, res) {
   console.log("Received body: ", req.body);
-
-  // Assigning the URL from the body of the request
-  const originalURL = req.body.url;
-  console.log("Received URL: ", originalURL);
-
-  // Check if the URL starts with 'http://' or 'https://'
-  if (originalURL && (originalURL.startsWith("https://") || originalURL.startsWith("http://"))) {
-
-    // Check if the URL already exists in the database
+  const url = {
+    originalURL: req.body.url,
+    shortid: null
+  };
+  console.log("Received URL: ", url.originalURL);
+  if(url.originalURL && (url.originalURL.startsWith("https://") || url.originalURL.startsWith("http://"))) { 
     for (const shortid in urlDatabase) {
-      if (urlDatabase[shortid] === originalURL) {
-        return res.json({
-          original_url: originalURL,
+      if (urlDatabase[shortid] === url.originalURL) {
+        return res.json ({
+          original_url: url.originalURL,
           short_url: shortid
-        });
+        })
       }
     }
 
-    // If the URL is not found in the database, assign a new shortid
     const shortid = id;
-    urlDatabase[shortid] = originalURL;
-    id++;  // Increment the shortid for next time
+    urlDatabase[shortid] = url.originalURL;
+    id++;
 
-    // Return the JSON response with original URL and short URL
-    return res.json({
-      original_url: originalURL,
-      short_url: shortid
-    });
+    res.json({
+      original_url: url.originalURL,
+      short_url: url.shortid
+    })
 
   } else {
-    // If the URL is invalid, return an error message
-    return res.json({ error: "Invalid URL." });
+    res.json({ error: "Invalid URL."});
   }
 });
 
@@ -58,12 +53,10 @@ app.get('/api/shorturl/:short_url', function(req, res) {
   const shortUrl = req.params.short_url;
   const originalURL = urlDatabase[shortUrl];
 
-  if (originalURL) {
-    // Redirect to the original URL if found
+  if (originalURL) { 
     res.redirect(originalURL);
   } else {
-    // If no corresponding original URL is found, return an error message
-    res.json({ error: "No short URL found for the given input." });
+    res.json({error: "No short URL found for the given input."});
   }
 });
 
