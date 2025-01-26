@@ -1,50 +1,54 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const url = require('url');
 const app = express();
-
 const port = process.env.PORT || 3000;
 
-app.use(cors({ origin: '*' })); // Zapewniamy dostęp z różnych źródeł
+app.use(cors({ origin: '*' }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
 app.use('/public', express.static(`${process.cwd()}/public`));
 
-app.get('/', function(req, res) {
+app.get('/', function (req, res) {
   res.sendFile(process.cwd() + '/views/index.html');
 });
 
 let id = 1;
 const urlDatabase = {};
 
-app.post('/api/shorturl', function(req, res) {
+app.post('/api/shorturl', function (req, res) {
   console.log("Received body: ", req.body);
 
   let originalURL = req.body.url;
+  if (!originalURL) {
+    console.log("Error: Missing 'url' in the request body");
+    return res.json({ error: 'invalid url' });
+  }
 
-  // Jeśli URL nie zaczyna się od http:// lub https://, dodajemy https://
-  if (!/^https?:\/\//i.test(originalURL)) {
+  let parsedUrl = url.parse(originalURL);
+
+  if (!parsedUrl.protocol) {
     originalURL = 'https://' + originalURL;
+    parsedUrl = url.parse(originalURL);
   }
 
-  // Poprawiony wzorzec URL
-  const urlPattern = /^(https?:\/\/)[^\s$.?#].[^\s]*$/i;
-
-  if (!originalURL || !urlPattern.test(originalURL)) {
-    return res.status(400).json({ error: 'invalid url' });
+  if (!parsedUrl.protocol || !parsedUrl.hostname) {
+    console.log("Error: Invalid URL format:", originalURL);
+    return res.json({ error: 'invalid url' });
   }
 
-  // Sprawdzamy, czy URL już istnieje w bazie danych
   for (const shortid in urlDatabase) {
     if (urlDatabase[shortid] === originalURL) {
       return res.json({
         original_url: originalURL,
-        short_url: shortid // Odpowiedź z krótkim URL
+        short_url: shortid
       });
     }
   }
 
-  // Tworzymy nowy krótki URL
   const shortid = id++;
   urlDatabase[shortid] = originalURL;
 
@@ -54,22 +58,20 @@ app.post('/api/shorturl', function(req, res) {
   };
 
   console.log("Response sent: ", response);
-  res.json(response); // Zwracamy odpowiedź JSON
+  res.json(response); 
 });
 
-app.get('/api/shorturl/:short_url', function(req, res) {
+app.get('/api/shorturl/:short_url', function (req, res) {
   const shortUrl = req.params.short_url;
   const originalURL = urlDatabase[shortUrl];
 
   if (originalURL) {
-    // Przekierowujemy do oryginalnego URL
     res.redirect(originalURL);
   } else {
-    // Obsługujemy przypadek, gdy krótkiego URL nie znaleziono
-    res.status(404).json({ error: "No short URL found for the given input." });
+    res.json({ error: "No short URL found for the given input." });
   }
 });
 
-app.listen(port, function() {
+app.listen(port, function () {
   console.log(`Listening on port ${port}`);
 });
