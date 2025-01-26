@@ -19,12 +19,16 @@ let id = 1;
 const urlDatabase = {};
 
 app.post('/api/shorturl', function(req, res) {
+
   console.log("Received body: ", req.body);
+
   const url = {
     originalURL: req.body.url,
     shortid: null
   };
-  console.log("Received URL: ", url.originalURL);
+
+  console.log("Received URL: ", url.originalURL); 
+
   if(url.originalURL && (url.originalURL.startsWith("https://") || url.originalURL.startsWith("http://"))) { 
     for (const shortid in urlDatabase) {
       if (urlDatabase[shortid] === url.originalURL) {
@@ -36,6 +40,7 @@ app.post('/api/shorturl', function(req, res) {
     }
 
     const shortid = id;
+    url.shortid = shortid;
     urlDatabase[shortid] = url.originalURL;
     id++;
 
